@@ -1,0 +1,75 @@
+import tensorflow_datasets as tfds
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.svm import LinearSVC
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+# -------------------------------
+# Load EMNIST Balanced
+# -------------------------------
+ds_train, ds_test = tfds.load(
+    'emnist/balanced',
+    split=['train', 'test'],
+    as_supervised=True
+)
+
+# Use subset for speed
+def load_subset(ds, limit):
+    X, y = [], []
+    for i, (img, label) in enumerate(tfds.as_numpy(ds)):
+        if i >= limit:
+            break
+        X.append(img.reshape(-1) / 255.0)
+        y.append(label)
+    return np.array(X), np.array(y)
+
+X_train, y_train = load_subset(ds_train, 5000)
+X_test, y_test = load_subset(ds_test, 1000)
+
+# -------------------------------
+# Plot sample images
+# -------------------------------
+plt.figure(figsize=(8, 3))
+for i in range(10):
+    plt.subplot(1, 10, i + 1)
+    plt.imshow(X_train[i].reshape(28, 28), cmap="gray")
+    plt.title(y_train[i])
+    plt.axis("off")
+plt.suptitle("Sample EMNIST Balanced Images")
+plt.show()
+
+# -------------------------------
+# Train Linear SVM
+# -------------------------------
+svm = LinearSVC(max_iter=1000)
+svm.fit(X_train, y_train)
+
+# -------------------------------
+# Evaluation
+# -------------------------------
+y_pred = svm.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print("Test Accuracy:", accuracy)
+
+# -------------------------------
+# Confusion Matrix
+# -------------------------------
+cm = confusion_matrix(y_test, y_pred)
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, cmap="Blues", cbar=True)
+plt.title("Confusion Matrix (EMNIST Balanced - SVM)")
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.show()
+
+# -------------------------------
+# Accuracy Bar Plot
+# -------------------------------
+plt.figure(figsize=(4, 4))
+plt.bar(["SVM Accuracy"], [accuracy], color="green")
+plt.ylim(0, 1)
+plt.title("Model Accuracy")
+plt.show()
